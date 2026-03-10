@@ -1,0 +1,14 @@
+{
+    "app_name": "XVBA",
+    "description": "",
+    "author": "Diego Mayorga Olviera",
+    "email": "",
+    "create_ate": "Wed Mar 04 2026 15:01:01 GMT-0600 (Central Standard Time)",
+    "excel_file": "ROTACION DE PERSONAL.xlsb",
+    "vba_folder": "vba-files",
+    "ribbon_file": "customUI14",
+    "ribbon_folder": "ribbons",
+    "logs": "on",
+    "xvba_packages": {},
+    "xvba_dev_packages": {}
+}
