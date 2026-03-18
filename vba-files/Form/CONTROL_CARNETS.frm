@@ -13,6 +13,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
+
 '====================================================================================================================================
 ' Formulario para gestionar el control de carnets y cordones de empleados.
 ' Permite registrar nuevos movimientos relacionados con carnets y cordones, así como consultar los registros existentes.

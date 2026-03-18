@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} TRAS_NOM 
    Caption         =   "TRASLADOS Y NOMBRAMIENTOS"
-   ClientHeight    =   9615.001
+   ClientHeight    =   9450.001
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   17760
@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 
 '====================================================================================================================================
 ' Formulario para gestionar los traslados y nombramientos de empleados.
@@ -31,6 +32,64 @@ Public Function ObtenerRutaFotos() As String
     ObtenerRutaFotos = ThisWorkbook.Path & "\FOTOS\"
 End Function
 
+
+Private Sub ATRAS_Click()
+
+Unload Me
+MENU_PRINCIPAL.Show
+Load MENU_PRINCIPAL
+
+End Sub
+
+Private Sub MOTIVO_EXIT(ByVal Cancel As MSForms.ReturnBoolean)
+
+Dim tbl As ListObject
+    Dim c As Range
+    Dim OpMot As String
+    
+    'Referencia a la tabla
+    Set tbl = Hoja24.ListObjects("MOTIVO")
+    
+    OpMot = Trim(Me.MOTIVO.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If OpMot = "" Then
+        UserForm_Initialize
+        UserForm_Activate
+        Me.EMP.Value = ""
+        Exit Sub
+
+    End If
+    
+    'Buscar empleado en columna 1 (Col A = No. EMP)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=OpMot, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+    
+    'Si NO existe
+    If c Is Nothing Then
+        
+        LimpiarCampos
+        MsgBox "Motivo Incorrecto", vbExclamation
+        Me.MOTIVO.Value = ""
+        Me.EMP.Value = ""
+        UserForm_Initialize
+        UserForm_Activate
+        Cancel = True
+        Exit Sub
+        
+    End If
+    
+    Me.EMP_ETIQUETA.Visible = True
+    Me.EMP.Visible = True
+    Me.EMP.Value = ""
+    Me.EMP.SetFocus
+
+End Sub
+
+
+
 Private Sub UserForm_Initialize()
 
 Me.ScrollTop = 0
@@ -41,24 +100,25 @@ Me.KeepScrollBarsVisible = fmScrollBarsNone
 IgnorarValidacionEMP = False 'validacion de EMP
 IgnorarValidacionCOD = False 'validacion de COD
 
-me.cod.value = ""
-me.cod.locked = false
-me.cod.tabstop = true
-me.cod.mousepointer = fmMousePointerDefault
+Me.COD.Value = ""
+Me.COD.Locked = False
+Me.COD.tabstop = True
+Me.COD.MousePointer = fmMousePointerDefault
+Me.COD.tabindex = 50
 
-me.motivo.value = ""
-me.motivo.locked = false
-me.motivo.tabstop = true
-me.motivo.mousepointer = fmMousePointerDefault
+Me.MOTIVO.Value = ""
+Me.MOTIVO.Locked = False
+Me.MOTIVO.tabstop = True
+Me.MOTIVO.MousePointer = fmMousePointerDefault
 Me.NOMBRES_ETIQUETA.Visible = False
 Me.NOMBRES.Visible = False
 Me.NOMBRES.Value = ""
 Me.EMP_ETIQUETA.Visible = True
 Me.EMP.Visible = True
 Me.EMP.Value = ""
-me.emp.locked = false
-me.emp.tabstop = true
-me.emp.mousepointer = fmMousePointerDefault
+Me.EMP.Locked = False
+Me.EMP.tabstop = True
+Me.EMP.MousePointer = fmMousePointerDefault
 Me.CEDULA_ETIQUETA.Visible = False
 Me.CEDULA.Visible = False
 Me.CEDULA.Value = ""
@@ -125,6 +185,14 @@ Me.RURAL.Value = False
 Me.OBSERVACIONES_ETIQUETA.Visible = False
 Me.OBSERVACIONES.Visible = False
 Me.OBSERVACIONES.Value = ""
+Me.ATRAS.Visible = True
+Me.DEPENDIENTES_ETIQUETA.Visible = False
+Me.DEPENDIENTES.Visible = False
+
+
+Me.ATRAS.Top = 20
+Me.ATRAS.Left = 445
+
 
 Me.FOTO_TRABAJADOR.Visible = False
 Me.SIN_FOTO.Visible = False
@@ -133,7 +201,7 @@ Me.AGREGAR_FOTO.Visible = False
 Me.ELIMINAR_FOTO.Visible = False
 Me.CARPETA_FOTO.Visible = False
 Me.IMPRIMIR.Visible = False
-
+Me.COMPARATIVA.Visible = False
     
     'BUSQUEDA DE TIPOS
 
@@ -209,9 +277,14 @@ Private Sub COD_Exit(ByVal Cancel As MSForms.ReturnBoolean)
     End If
         
         
-        IgnorarValidacionEMP = True
+    IgnorarValidacionEMP = True
         
-        MOTIVO = c.Offset(0, 3).Value
+    MOTIVO = c.Offset(0, 3).Value
+    
+    Me.COMPARATIVA.Visible = True
+    Me.COMPARATIVA.Value = 0
+        
+        
         
         Select Case True
         Case MOTIVO = "TN"
@@ -249,6 +322,8 @@ Private Sub COD_Exit(ByVal Cancel As MSForms.ReturnBoolean)
             Me.UBICACION_ESPECIFICA_NUEVO.Left = 6
             Me.UBICACION_ESPECIFICA_NUEVO.Top = 192
             Me.UBICACION_ESPECIFICA_NUEVO.Value = ""
+            Hoja1.rows("24:29").EntireRow.Hidden = False
+            Hoja1.Range("F23").Value = "Datos de la Ubicacion Nueva y Cargo Laboral Nuevo"
             
         Case MOTIVO = "T"
             Me.MOTIVO.Value = "TRASLADO"
@@ -278,7 +353,10 @@ Private Sub COD_Exit(ByVal Cancel As MSForms.ReturnBoolean)
             Me.UBICACION_ESPECIFICA_NUEVO.Visible = True
             Me.UBICACION_ESPECIFICA_NUEVO.Top = 84
             Me.UBICACION_ESPECIFICA_NUEVO.Value = ""
-            
+            Hoja1.rows("24:29").EntireRow.Hidden = False
+            Hoja1.rows("28:29").EntireRow.Hidden = True
+            Hoja1.Range("F23").Value = "Datos de la Ubicacion Nueva"
+
         Case MOTIVO = "N"
             Me.MOTIVO.Value = "NOMBRAMIENTO"
             Me.CARGO_NUEVO_ETIQUETA.Visible = True
@@ -302,6 +380,9 @@ Private Sub COD_Exit(ByVal Cancel As MSForms.ReturnBoolean)
             Me.UBICACION_ESPECIFICA_NUEVO_ETIQUETA.Visible = False
             Me.UBICACION_ESPECIFICA_NUEVO.Visible = False
             Me.UBICACION_ESPECIFICA_NUEVO.Value = ""
+            Hoja1.rows("24:29").EntireRow.Hidden = False
+            Hoja1.rows("24:27").EntireRow.Hidden = True
+            Hoja1.Range("F23").Value = "Datos del Cargo Laboral Nuevo"
             
         End Select
         Me.COMPARATIVA.Value = 0
@@ -344,6 +425,10 @@ Private Sub COD_Exit(ByVal Cancel As MSForms.ReturnBoolean)
         Me.MEMO.Visible = True
         Me.DOMICILIO_ETIQUETA.Visible = True
         Me.DOMICILIO.Visible = True
+        Me.SI.Value = False
+        Me.NO.Value = False
+        Me.DEPENDIENTES_ETIQUETA.Visible = True
+        Me.DEPENDIENTES.Visible = True
         Me.URBANO.Value = False
         Me.RURAL.Value = False
         Me.OBSERVACIONES_ETIQUETA.Visible = True
@@ -366,526 +451,90 @@ Private Sub COD_Exit(ByVal Cancel As MSForms.ReturnBoolean)
         Me.CLASIFICACION_CARGO.Value = c.Offset(0, 10).Value
         Me.UBICACION.Value = c.Offset(0, 11).Value
         Me.UBICACION_GENERAL.Value = c.Offset(0, 12).Value
+            Hoja1.Range("L9").Value = Me.UBICACION_GENERAL.Value
         Me.UBICACION_ESPECIFICA.Value = c.Offset(0, 13).Value
-        
-        
+
+
         'DATOS NUEVOS
         Me.CARGO_NUEVO.Value = c.Offset(0, 14).Value
         Me.CARGO_OCUPACIONAL_NUEVO.Value = c.Offset(0, 15).Value
         Me.CLASIFICACION_CARGO_NUEVO.Value = c.Offset(0, 16).Value
+
+        If Me.Clasificacion_cargo_nuevo.value = "DIRECTIVO" Then
+            Hoja1.range("L12").Value = "DIRECTIVO"
+        Else
+            Hoja1.range("L12").Value = ""
+        End If
+
         Me.UBICACION_NUEVO.Value = c.Offset(0, 17).Value
         Me.UBICACION_GENERAL_NUEVO.Value = c.Offset(0, 18).Value
+            Hoja1.Range("L16").Value = Me.UBICACION_GENERAL_NUEVO.Value
         Me.UBICACION_ESPECIFICA_NUEVO.Value = c.Offset(0, 19).Value
+            Hoja1.Range("L17").Value = Me.UBICACION_ESPECIFICA_NUEVO.Value
+
         
         'DATOS ABAJO
+        Me.DEPENDIENTES.Visible = True
+        Me.DEPENDIENTES_ETIQUETA.Visible = True
+        SeleccionarDependientes c.Offset(0, 24).Value
         
-        Me.OBSERVACIONES.Value = c.Offset(0, 25).Value
-        Me.RESPONSABLE.Value = c.Offset(0, 24).Value
+        If c.Offset(0, 25).Value = "Temporal" Then
+            Me.Temporal.Value = True
+        Else
+            Me.Temporal.Value = False
+        End If
+
+        Me.OBSERVACIONES.Value = c.Offset(0, 27).Value
+        Me.RESPONSABLE.Value = c.Offset(0, 26).Value
         Me.REGISTRAR.Visible = False
         Me.IMPRIMIR.Visible = True
 
-        me.comparativa.value = 0
+
+        'Preparar datos para el Memo
+        Hoja1.Range("L38").Value = 2745 'Cambiar cuando haya una Persona responsable definida
+
+            If c.Offset(0, 25).Value = "DEFINITIVO" Then
+                Hoja1.Range("L3").Value = ""
+                Me.Temporal.Value = False
+            Else
+                Hoja1.Range("L3").Value = "TEMPORAL"
+                Me.Temporal.Value = True
+            End If
+                
+        If Hoja1.Range("L36").Value = 0 Then
+
+            Me.EMP_ENVIA_MEMO.Value = Hoja1.Range("L38").Value
+        Else
+            Me.EMP_ENVIA_MEMO.Value = Hoja1.Range("L36").Value
+        End If
+        
+        Me.NOMBRE_ENVIA_MEMO.Value = UCase(Hoja1.Range("L39").Value)
+        Me.CARGO_ENVIA_MEMO.Value = UCase(Hoja1.Range("L40").Value)
+        Me.UBICACION_ENVIA_MEMO.Value = UCase(Hoja1.Range("L41").Value)
+        Me.VER_ENVIAR.Value = True
+
+
+        Me.COMPARATIVA.Value = 0
 
         Call CargarFoto(Me.NOMBRES.Value)
         
         Call BloquearTodo
 
+        Me.ATRAS.Top = 440
+        Me.ATRAS.Left = 845
         Me.IMPRIMIR.SetFocus
         
 End Sub
 
 
-Private Sub BloquearTodo()
+Private Sub EMP_EXIT(ByVal Cancel As MSForms.ReturnBoolean)
 
-        '===========================
-        ' Bloquear todos los campos
-        '===========================
-        bloquearGenerales
-        bloquearActuales
-        bloquearNuevos
-        bloquearAbajo
 
-end sub
-
-end Sub BloquearGenerales()
-
-            'Datos generales
-        me.emp.locked = true
-        me.motivo.locked = true
-        me.nombres.locked = true
-        me.cedula.locked = true
-        me.edad.locked = true
-        me.femenino.locked = true
-        me.masculino.locked = true
-        me.urbano.locked = true
-        me.rural.locked = true
-        me.memo.locked = true
-        me.fecha.locked = true
-
-
-        'Datos generales
-        me.emp.tabstop = false
-        me.motivo.tabstop = false
-        me.nombres.tabstop = false
-        me.cedula.tabstop = false
-        me.edad.tabstop = false
-        me.femenino.tabstop = false
-        me.masculino.tabstop = false
-        me.urbano.tabstop = false
-        me.rural.tabstop = false
-        me.memo.tabstop = false
-        me.fecha.tabstop = false
-
-        'Datos generales
-        me.emp.mousepointer = fmMousePointerNoDrop
-        me.motivo.mousepointer = fmMousePointerNoDrop
-        me.nombres.mousepointer = fmMousePointerNoDrop
-        me.cedula.mousepointer = fmMousePointerNoDrop
-        me.edad.mousepointer = fmMousePointerNoDrop
-        me.femenino.mousepointer = fmMousePointerNoDrop
-        me.masculino.mousepointer = fmMousePointerNoDrop
-        me.urbano.mousepointer = fmMousePointerNoDrop
-        me.rural.mousepointer = fmMousePointerNoDrop
-        me.memo.mousepointer = fmMousePointerNoDrop
-        me.fecha.mousepointer = fmMousePointerNoDrop
-        
-End Sub
-
-Sub BloquearActuales()
-
-        'datos actuales
-        me.cargo.locked = true
-        me.cargo_ocupacional.locked = true
-        me.clasificacion_cargo.locked = true
-        me.ubicacion.locked = true
-        me.ubicacion_general.locked = true
-        me.ubicacion_especifica.locked = true
-
-        'datos actuales
-        me.cargo.tabstop = false
-        me.cargo_ocupacional.tabstop = false
-        me.clasificacion_cargo.tabstop = false
-        me.ubicacion.tabstop = false
-        me.ubicacion_general.tabstop = false
-        me.ubicacion_especifica.tabstop = false
-
-        'datos actuales
-        me.cargo.mousepointer = fmMousePointerNoDrop
-        me.cargo_ocupacional.mousepointer = fmMousePointerNoDrop
-        me.clasificacion_cargo.mousepointer = fmMousePointerNoDrop
-        me.ubicacion.mousepointer = fmMousePointerNoDrop
-        me.ubicacion_general.mousepointer = fmMousePointerNoDrop
-        me.ubicacion_especifica.mousepointer = fmMousePointerNoDrop
-        
-
-End Sub
-
-Sub BloquearNuevos()
-
-        'datos nuevos
-        me.cargo_nuevo.locked = true
-        me.cargo_ocupacional_nuevo.locked = true
-        me.clasificacion_cargo_nuevo.locked = true
-        me.ubicacion_nuevo.locked = true
-        me.ubicacion_general_nuevo.locked = true
-        me.ubicacion_especifica_nuevo.locked = true
-        
-        'datos nuevos
-        me.cargo_nuevo.tabstop = false
-        me.cargo_ocupacional_nuevo.tabstop = false
-        me.clasificacion_cargo_nuevo.tabstop = false
-        me.ubicacion_nuevo.tabstop = false
-        me.ubicacion_general_nuevo.tabstop = false
-        me.ubicacion_especifica_nuevo.tabstop = false
-
-        'datos nuevos
-        me.cargo_nuevo.mousepointer = fmMousePointerNoDrop
-        me.cargo_ocupacional_nuevo.mousepointer = fmMousePointerNoDrop
-        me.clasificacion_cargo_nuevo.mousepointer = fmMousePointerNoDrop
-        me.ubicacion_nuevo.mousepointer = fmMousePointerNoDrop
-        me.ubicacion_general_nuevo.mousepointer = fmMousePointerNoDrop
-        me.ubicacion_especifica_nuevo.mousepointer = fmMousePointerNoDrop
-End Sub
-
-
-Sub BloquearAbajo()
-    
-        'datos abajo
-        me.observaciones.locked = true
-        me.responsable.locked = true
-
-        'datos abajo
-        me.observaciones.tabstop = false
-        me.responsable.tabstop = false
-
-        'datos abajo
-        me.observaciones.mousepointer = fmMousePointerNoDrop
-        me.responsable.mousepointer = fmMousePointerNoDrop
-End Sub    
-
-
-
-    Private Sub DesbloquearTodo()
-
-    '===========================
-    ' Desbloquear todos los campos
-    '===========================
-    desbloquearGenerales
-    desbloquearActuales
-    desbloquearNuevos
-    desbloquearAbajo
-        
-
-    end sub
-
-
-    Sub DesbloquearGenerales()
-        
-    
-
-    'Datos generales
-    me.emp.locked = false
-    me.motivo.locked = false
-    me.nombres.locked = false
-    me.cedula.locked = false
-    me.edad.locked = false
-    me.femenino.locked = false
-    me.masculino.locked = false
-    me.urbano.locked = false
-    me.rural.locked = false
-    me.memo.locked = false
-    me.fecha.locked = false
-
-    'Datos generales
-    me.emp.tabstop = true
-    me.motivo.tabstop = true
-    me.nombres.tabstop = true
-    me.cedula.tabstop = true
-    me.edad.tabstop = true
-    me.femenino.tabstop = true
-    me.masculino.tabstop = true
-    me.urbano.tabstop = true
-    me.rural.tabstop = true
-    me.memo.tabstop = true
-    me.fecha.tabstop = true
-
-    'Datos generales
-    me.emp.mousepointer = fmMousePointerDefault
-    me.motivo.mousepointer = fmMousePointerDefault
-    me.nombres.mousepointer = fmMousePointerDefault
-    me.cedula.mousepointer = fmMousePointerDefault
-    me.edad.mousepointer = fmMousePointerDefault
-    me.femenino.mousepointer = fmMousePointerDefault
-    me.masculino.mousepointer = fmMousePointerDefault
-    me.urbano.mousepointer = fmMousePointerDefault
-    me.rural.mousepointer = fmMousePointerDefault
-    me.memo.mousepointer = fmMousePointerDefault
-    me.fecha.mousepointer = fmMousePointerDefault
-
-    End Sub
-
-    Sub DesbloquearActuales()
-        
-   
-
-    'datos actuales
-    me.cargo.locked = false
-    me.cargo_ocupacional.locked = false
-    me.clasificacion_cargo.locked = false
-    me.ubicacion.locked = false
-    me.ubicacion_general.locked = false
-    me.ubicacion_especifica.locked = false
-
-    'datos actuales
-    me.cargo.tabstop = true
-    me.cargo_ocupacional.tabstop = true
-    me.clasificacion_cargo.tabstop = true
-    me.ubicacion.tabstop = true
-    me.ubicacion_general.tabstop = true
-    me.ubicacion_especifica.tabstop = true
-
-    'datos actuales
-    me.cargo.mousepointer = fmMousePointerDefault
-    me.cargo_ocupacional.mousepointer = fmMousePointerDefault
-    me.clasificacion_cargo.mousepointer = fmMousePointerDefault
-    me.ubicacion.mousepointer = fmMousePointerDefault
-    me.ubicacion_general.mousepointer = fmMousePointerDefault
-    me.ubicacion_especifica.mousepointer = fmMousePointerDefault
-
-    End Sub
-
-    Sub DesbloquearNuevos()
-        
-
-
-    'datos nuevos
-    me.cargo_nuevo.locked = false
-    me.cargo_ocupacional_nuevo.locked = false
-    me.clasificacion_cargo_nuevo.locked = false
-    me.ubicacion_nuevo.locked = false
-    me.ubicacion_general_nuevo.locked = false
-    me.ubicacion_especifica_nuevo.locked = false
-
-    'datos nuevos
-    me.cargo_nuevo.tabstop = true
-    me.cargo_ocupacional_nuevo.tabstop = true
-    me.clasificacion_cargo_nuevo.tabstop = true
-    me.ubicacion_nuevo.tabstop = true
-    me.ubicacion_general_nuevo.tabstop = true
-    me.ubicacion_especifica_nuevo.tabstop = true
-
-    'datos nuevos
-    me.cargo_nuevo.mousepointer = fmMousePointerDefault
-    me.cargo_ocupacional_nuevo.mousepointer = fmMousePointerDefault
-    me.clasificacion_cargo_nuevo.mousepointer = fmMousePointerDefault
-    me.ubicacion_nuevo.mousepointer = fmMousePointerDefault
-    me.ubicacion_general_nuevo.mousepointer = fmMousePointerDefault
-    me.ubicacion_especifica_nuevo.mousepointer = fmMousePointerDefault
-
-    End Sub
-
-    Sub DesbloquearAbajo()
-        
-
-
-    'datos abajo
-    me.observaciones.locked = false
-    me.responsable.locked = false
-   
-
-    'datos abajo
-    me.observaciones.tabstop = true
-    me.responsable.tabstop = true
-
-
-    'datos abajo
-    me.observaciones.mousepointer = fmMousePointerDefault
-    me.responsable.mousepointer = fmMousePointerDefault
-
-    End Sub
-
-Private Sub CARGO_Change()
-Dim Clas, Carg As Range
-                'Verificar si el campo de Cargo_Nuevo esta vacio
-                If Me.CARGO.Value = Empty Then
-                Me.CLASIFICACION_CARGO.Clear
-                
-                'Agregar los elementos de la tabla Clasificacion_Cargo de la Hoja24 a la variable Clas
-                Else
-                Set Clas = Hoja24.ListObjects("CLASIFICACION_CARGO").DataBodyRange
-                Me.CLASIFICACION_CARGO.Clear
-                
-                'Agregar Cada ClasificaciOn de Cargos al Listado
-                For Each Carg In Clas
-                Me.CLASIFICACION_CARGO.AddItem Carg.Value
-                Next Carg
-                End If
-End Sub
-
-
-Private Sub CLASIFICACION_CARGO_AfterUpdate()
-
-Dim tbl As ListObject
-    Dim c As Range
-    Dim Clas As String
-    
-    'Referencia a la tabla
-    Set tbl = Hoja24.ListObjects("CLASIFICACION_CARGO")
-    
-    Clas = Trim(Me.CLASIFICACION_CARGO.Value)
-    
-    'Si esta vacio ? limpiar y salir
-    If Clas = "" Then
-        Exit Sub
-    End If
-    
-    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
-    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
-                What:=Clas, _
-                LookAt:=xlWhole, _
-                MatchCase:=False)
-    
-    'Si NO existe
-    If c Is Nothing Then
-        
-        MsgBox "La Clasificacion de Cargo no Existe", vbExclamation
-        Me.CLASIFICACION_CARGO.SetFocus
-        Exit Sub
-        
-    End If
-
-End Sub
-Private Sub CLASIFICACION_CARGO_NUEVO_AfterUpdate()
-
-Dim tbl As ListObject
-    Dim c As Range
-    Dim Clas As String
-    
-    'Referencia a la tabla
-    Set tbl = Hoja24.ListObjects("CLASIFICACION_CARGO")
-    
-    Clas = Trim(Me.CLASIFICACION_CARGO_NUEVO.Value)
-    
-    'Si esta vacio ? limpiar y salir
-    If Clas = "" Then
-        Exit Sub
-    End If
-    
-    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
-    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
-                What:=Clas, _
-                LookAt:=xlWhole, _
-                MatchCase:=False)
-    
-    'Si NO existe
-    If c Is Nothing Then
-        
-        MsgBox "La Clasificacion de Cargo Nuevo no Existe", vbExclamation
-        Me.CLASIFICACION_CARGO_NUEVO.SetFocus
-        Exit Sub
-        
-    End If
-
-End Sub
-
-Private Sub RESPONSABLE_Change()
-    If Me.RESPONSABLE.Value = "" Then
-        'Me.REGISTRAR.Visible = False
-        Me.REGISTRAR.Enabled = False
-    Else
-        Me.REGISTRAR.Visible = True
-        Me.REGISTRAR.Enabled = True
-        
-    End If
-
-End Sub
-
-Private Sub RESPONSABLE_AfterUpdate()
-
-Dim tbl As ListObject
-    Dim c As Range
-    Dim Resp As String
-    
-    'Referencia a la tabla
-    Set tbl = Hoja24.ListObjects("RESPONSABLE")
-    
-    Resp = Trim(Me.RESPONSABLE.Value)
-    
-    'Si esta vacio ? limpiar y salir
-    If Resp = "" Then
-        Me.REGISTRAR.Visible = False
-        Me.REGISTRAR.Enabled = False
-        Exit Sub
-    End If
-    
-    'Buscar responsable en columna 1 (Col A = UbicaciOn)
-    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
-                What:=Resp, _
-                LookAt:=xlWhole, _
-                MatchCase:=False)
-    
-    'Si NO existe
-    If c Is Nothing Then
-        
-        MsgBox "Responsable no Existe", vbExclamation
-        Me.REGISTRAR.Enabled = False
-        Me.RESPONSABLE.Value = ""
-        Me.RESPONSABLE.SetFocus
-        Exit Sub
-        
-    End If
-        
-End Sub
-
-Private Sub UBICACION_Change()
-Dim Depe, Ubi As Range
-        If Me.UBICACION.Value = Empty Then
-        Me.UBICACION_GENERAL.Clear
-        
-        Else
-        'Asignar a cada Dependencia su area ESPECIFICA
-        Set Depe = Hoja24.ListObjects(Me.UBICACION.Value).DataBodyRange
-        Me.UBICACION_GENERAL.Clear
-        
-                'Agregar Cada area ESPECIFICA al Listado
-                For Each Ubi In Depe
-                Me.UBICACION_GENERAL.AddItem Ubi.Value
-                Next Ubi
-        End If
-    
-End Sub
-
-Private Sub URBANO_Click()
-
-    Me.URBANO.Value = True
-    Me.URBANO.ForeColor = &HFF0000
-    Me.RURAL.Value = False
-    Me.RURAL.ForeColor = &H0&
-    
-
-End Sub
-
-Private Sub RURAL_Click()
-        
-    Me.RURAL.Value = True
-    Me.RURAL.ForeColor = &HFF0000
-    Me.URBANO.Value = False
-    Me.URBANO.ForeColor = &H0&
-
-End Sub
-
-Private Sub UBICACION_NUEVO_AfterUpdate()
-    
-    Dim tbl As ListObject
-    Dim c As Range
-    Dim Ubi As String
-    
-    'Referencia a la tabla
-    Set tbl = Hoja24.ListObjects("UBICACION")
-    
-    Ubi = Trim(Me.UBICACION_NUEVO.Value)
-    
-    'Si esta vacio ? limpiar y salir
-    If Ubi = "" Then
-        Me.UBICACION_GENERAL_NUEVO.Clear
-        Exit Sub
-    End If
-    
-    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
-    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
-                What:=Ubi, _
-                LookAt:=xlWhole, _
-                MatchCase:=False)
-    
-    'Si NO existe
-    If c Is Nothing Then
-        
-        Me.UBICACION_GENERAL_NUEVO.Clear
-        MsgBox "La Ubicacion no Existe", vbExclamation
-        Me.UBICACION_NUEVO.SetFocus
-        Exit Sub
-        
-    End If
-    
-    'Asignar a cada Dependencia su area ESPECIFICA
-    Dim Dependencia, Dep As Range
-        Set Dependencia = Hoja24.ListObjects(Me.UBICACION_NUEVO.Value).DataBodyRange
-        Me.UBICACION_GENERAL_NUEVO.Clear
-        
-        'Agregar Cada area ESPECIFICA al Listado
-        For Each Dep In Dependencia
-            Me.UBICACION_GENERAL_NUEVO.AddItem Dep.Value
-        Next Dep
-    
-End Sub
-
-
-Private Sub EMP_AfterUpdate()
     If IgnorarValidacionEMP Then Exit Sub 'validacion de COD
 
     Dim tbl As ListObject
     Dim c As Range
-    Dim empVal, Mot, Baja As String
+    Dim empVal, Mot, BAJA As String
     
     'Referencia a la tabla
     Set tbl = Hoja25.ListObjects("NOMINA")
@@ -893,6 +542,11 @@ Private Sub EMP_AfterUpdate()
     Mot = Me.MOTIVO.Value
     empVal = Trim(Me.EMP.Value)
     
+    If Mot = "" Then
+        MsgBox "Seleccione un Motivo de Movimiento", vbExclamation
+        Exit Sub
+    End If
+
     'Si esta vacio ? limpiar y salir
     If empVal = "" Then
         UserForm_Initialize
@@ -900,6 +554,8 @@ Private Sub EMP_AfterUpdate()
         LimpiarCampos
         Me.MOTIVO.Value = Mot
         IgnorarValidacionCOD = False
+        Cancel = False
+
         Exit Sub
     End If
     
@@ -918,15 +574,15 @@ Private Sub EMP_AfterUpdate()
         IgnorarValidacionCOD = False
         MsgBox "Empleado No Existe en la Nomina", vbExclamation
         Me.EMP.Value = ""
-        Me.EMP.SetFocus
+        Cancel = True
         Exit Sub
 
     End If
     
     
-    Baja = c.Offset(0, 17).Value
+    BAJA = c.Offset(0, 17).Value
     
-    If Baja <> "" Then
+    If BAJA <> "" Then
         
         UserForm_Initialize
         UserForm_Activate
@@ -934,7 +590,7 @@ Private Sub EMP_AfterUpdate()
         Me.MOTIVO.Value = Mot
         MsgBox "Empleado se Encuentra en Estado Inactivo (BAJA)", vbExclamation
         Me.EMP.Value = ""
-        Me.EMP.SetFocus
+        Cancel = True
         Exit Sub
     End If
     
@@ -943,11 +599,14 @@ Private Sub EMP_AfterUpdate()
     '===========================
     
     IgnorarValidacionCOD = True
-    desbloquear
-    me.cod.value = ""
-    me.cod.locked = true
-    me.cod.tabstop = false
-    me.cod.mousepointer = fmMousePointerNodrop
+    DesbloquearTodo
+    Me.COD.Value = ""
+    Me.COD.Locked = True
+    Me.COD.tabstop = False
+    Me.COD.MousePointer = fmMousePointerNoDrop
+
+    Me.COMPARATIVA.Visible = True
+    Me.COMPARATIVA.Value = 0
 
     Select Case True
     
@@ -1043,7 +702,9 @@ Private Sub EMP_AfterUpdate()
         Me.OBSERVACIONES.Visible = True
         Me.OBSERVACIONES.Value = ""
         Me.EMP.SetFocus
-    
+
+        Hoja1.rows("24:29").EntireRow.Hidden = False
+        Hoja1.Range("F23").Value = "Datos de la Ubicacion Nueva y Cargo Laboral Nuevo"
     
     Case Mot = "TRASLADO"
     
@@ -1130,7 +791,11 @@ Private Sub EMP_AfterUpdate()
         Me.OBSERVACIONES.Visible = True
         Me.OBSERVACIONES.Value = ""
         Me.EMP.SetFocus
-    
+
+        Hoja1.rows("24:29").EntireRow.Hidden = False
+        Hoja1.rows("28:29").EntireRow.Hidden = True
+        Hoja1.Range("F23").Value = "Datos de la Ubicacion Nueva"
+        
     Case Mot = "NOMBRAMIENTO"
     
         Me.height = 510
@@ -1211,10 +876,16 @@ Private Sub EMP_AfterUpdate()
         Me.OBSERVACIONES.Visible = True
         Me.OBSERVACIONES.Value = ""
         Me.EMP.SetFocus
-        
+        Hoja1.rows("24:29").EntireRow.Hidden = False
+        Hoja1.rows("24:27").EntireRow.Hidden = True
+        Hoja1.Range("F23").Value = "Datos del Cargo Laboral Nuevo"
+
+
     End Select
+
+        
         Me.COMPARATIVA.Value = 0
-    
+        
     '===========================
     'CARGAR DATOS
     '===========================
@@ -1239,8 +910,28 @@ Private Sub EMP_AfterUpdate()
     Me.CLASIFICACION_CARGO.Value = c.Offset(0, 9).Value  'Col J
     Me.UBICACION.Value = c.Offset(0, 3).Value            'Col D
     Me.UBICACION_GENERAL.Value = c.Offset(0, 5).Value    'Col F
+        Hoja1.Range("L9").Value = c.Offset(0, 5).Value    'Col F para el Memo
     Me.UBICACION_ESPECIFICA.Value = c.Offset(0, 6).Value 'Col G
-    
+
+
+        'Preparar datos para el Memo
+        Hoja1.Range("L38").Value = 2745
+        Hoja1.Range("L3").Value = ""
+        
+        
+        If Hoja1.Range("L36").Value = 0 Then
+
+            Me.EMP_ENVIA_MEMO.Value = Hoja1.Range("L38").Value
+        Else
+            Me.EMP_ENVIA_MEMO.Value = Hoja1.Range("L36").Value
+        End If
+        
+        Me.NOMBRE_ENVIA_MEMO.Value = Hoja1.Range("L39").Value
+        Me.CARGO_ENVIA_MEMO.Value = Hoja1.Range("L40").Value
+        Me.UBICACION_ENVIA_MEMO.Value = Hoja1.Range("L41").Value
+        Me.VER_ENVIAR.Value = True
+        Me.Temporal.Value = False
+
         Dim Depe, Ubi As Range
         If Me.EMP.Value = Empty Then
         Me.UBICACION_NUEVO.Clear
@@ -1304,22 +995,706 @@ Private Sub EMP_AfterUpdate()
     Next r
     Me.COD.Value = "M" & (maxNum + 1)
     
-    me.cod.locked = true
-    me.cod.tabstop = false
-    me.cod.mousepointer = fmMousePointerNoDrop
+    Me.COD.Locked = True
+    Me.COD.tabstop = False
+    Me.COD.MousePointer = fmMousePointerNoDrop
 
 ' ============================================
 ' EVENTO PARA CARGAR LAS FOTOS DEL TRABAJADOR
 ' ============================================
-   
-    Call CargarFoto(Me.NOMBRES.Value)
 
+
+    Call CargarFoto(Me.NOMBRES.Value)
+    Me.ATRAS.Top = 440
+    Me.ATRAS.Left = 845
+    
 
     
 End Sub
 
+
+Sub EMP_ENVIA_MEMO_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim tbl As ListObject
+    Dim c As Range
+    Dim empVal, Mot, BAJA As String
+    
+    'Referencia a la tabla
+    Set tbl = Hoja25.ListObjects("NOMINA")
+    
+    empVal = Trim(Me.EMP_ENVIA_MEMO.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If empVal = "" Then
+        Me.NOMBRE_ENVIA_MEMO.Value = ""
+        Me.CARGO_ENVIA_MEMO.Value = ""
+        Me.UBICACION_ENVIA_MEMO.Value = ""
+        Cancel = False
+        
+        Exit Sub
+    End If
+    
+    'Buscar empleado en columna 1 (Col A = No. EMP)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=empVal, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+    
+    'Si NO existe
+    If c Is Nothing Then
+        MsgBox "Empleado No Existe en la Nomina", vbExclamation
+        Me.EMP_ENVIA_MEMO.Value = ""
+        Cancel = True
+        Exit Sub
+
+    End If
+    Hoja1.Range("L38").Value = Me.EMP_ENVIA_MEMO.Value
+
+    Call LetrasMemo(Hoja1.Range("L39"), Hoja1.Range("L37"))
+
+    Me.NOMBRE_ENVIA_MEMO.Value = c.Offset(0, 1).Value     'Col B
+    Me.CARGO_ENVIA_MEMO.Value = c.Offset(0, 8).Value
+    Me.UBICACION_ENVIA_MEMO.Value = c.Offset(0, 4).Value
+
+
+End Sub
+
+
+
+Sub Temporal_Change()
+
+    If Me.Temporal.Value = False Then
+
+        Me.Temporal.ForeColor = RGB(0, 0, 0)
+    Else
+        Me.Temporal.ForeColor = RGB(0, 0, 255)
+        
+    End If
+    
+End Sub
+
+
+
+Private Sub Temporal_Click()
+
+    If Me.Temporal.Value = True Then
+        
+        Hoja1.Range("L3").Value = "Temporal"
+        
+    Else
+
+        Hoja1.Range("L3").Value = ""
+
+    End If
+
+End Sub
+
+
+Sub Ver_Enviar_Change()
+
+    If Me.VER_ENVIAR.Value = False Then
+
+        Me.VER_ENVIAR.ForeColor = RGB(0, 0, 0)
+    Else
+        Me.VER_ENVIAR.ForeColor = RGB(0, 0, 255)
+        
+    End If
+    
+End Sub
+
+
+Sub Ver_Enviar_Click()
+
+    If Me.VER_ENVIAR.Value = True Then
+        Me.CARGO_ENVIA_MEMO.Enabled = True
+        Hoja1.Range("L42").Value = "Ver"
+    Else
+        Me.CARGO_ENVIA_MEMO.Enabled = False
+        Hoja1.Range("L42").Value = "No Ver"
+    End If
+    
+End Sub
+
+Private Sub BloquearTodo()
+
+        '===========================
+        ' Bloquear todos los campos
+        '===========================
+        BloquearGenerales
+        BloquearActuales
+        BloquearNuevos
+        BloquearAbajo
+
+End Sub
+
+Sub BloquearGenerales()
+
+            'Datos generales
+        Me.EMP.Locked = True
+        Me.MOTIVO.Locked = True
+        Me.NOMBRES.Locked = True
+        Me.CEDULA.Locked = True
+        Me.EDAD.Locked = True
+        Me.FEMENINO.Locked = True
+        Me.MASCULINO.Locked = True
+        Me.URBANO.Locked = True
+        Me.RURAL.Locked = True
+        Me.MEMO.Locked = True
+        Me.FECHA.Locked = True
+
+
+        'Datos generales
+        Me.EMP.tabstop = False
+        Me.MOTIVO.tabstop = False
+        Me.NOMBRES.tabstop = False
+        Me.CEDULA.tabstop = False
+        Me.EDAD.tabstop = False
+        Me.FEMENINO.tabstop = False
+        Me.MASCULINO.tabstop = False
+        Me.URBANO.tabstop = False
+        Me.RURAL.tabstop = False
+        Me.MEMO.tabstop = False
+        Me.FECHA.tabstop = False
+
+        'Datos generales
+        Me.EMP.MousePointer = fmMousePointerNoDrop
+        Me.MOTIVO.MousePointer = fmMousePointerNoDrop
+        Me.NOMBRES.MousePointer = fmMousePointerNoDrop
+        Me.CEDULA.MousePointer = fmMousePointerNoDrop
+        Me.EDAD.MousePointer = fmMousePointerNoDrop
+        Me.FEMENINO.MousePointer = fmMousePointerNoDrop
+        Me.MASCULINO.MousePointer = fmMousePointerNoDrop
+        Me.URBANO.MousePointer = fmMousePointerNoDrop
+        Me.RURAL.MousePointer = fmMousePointerNoDrop
+        Me.MEMO.MousePointer = fmMousePointerNoDrop
+        Me.FECHA.MousePointer = fmMousePointerNoDrop
+        
+End Sub
+
+Sub BloquearActuales()
+
+        'datos actuales
+        Me.CARGO.Locked = True
+        Me.CARGO_OCUPACIONAL.Locked = True
+        Me.CLASIFICACION_CARGO.Locked = True
+        Me.UBICACION.Locked = True
+        Me.UBICACION_GENERAL.Locked = True
+        Me.UBICACION_ESPECIFICA.Locked = True
+
+        'datos actuales
+        Me.CARGO.tabstop = False
+        Me.CARGO_OCUPACIONAL.tabstop = False
+        Me.CLASIFICACION_CARGO.tabstop = False
+        Me.UBICACION.tabstop = False
+        Me.UBICACION_GENERAL.tabstop = False
+        Me.UBICACION_ESPECIFICA.tabstop = False
+
+        'datos actuales
+        Me.CARGO.MousePointer = fmMousePointerNoDrop
+        Me.CARGO_OCUPACIONAL.MousePointer = fmMousePointerNoDrop
+        Me.CLASIFICACION_CARGO.MousePointer = fmMousePointerNoDrop
+        Me.UBICACION.MousePointer = fmMousePointerNoDrop
+        Me.UBICACION_GENERAL.MousePointer = fmMousePointerNoDrop
+        Me.UBICACION_ESPECIFICA.MousePointer = fmMousePointerNoDrop
+        
+
+End Sub
+
+Sub BloquearNuevos()
+
+        'datos nuevos
+        Me.CARGO_NUEVO.Locked = True
+        Me.CARGO_OCUPACIONAL_NUEVO.Locked = True
+        Me.CLASIFICACION_CARGO_NUEVO.Locked = True
+        Me.UBICACION_NUEVO.Locked = True
+        Me.UBICACION_GENERAL_NUEVO.Locked = True
+        Me.UBICACION_ESPECIFICA_NUEVO.Locked = True
+        
+        'datos nuevos
+        Me.CARGO_NUEVO.tabstop = False
+        Me.CARGO_OCUPACIONAL_NUEVO.tabstop = False
+        Me.CLASIFICACION_CARGO_NUEVO.tabstop = False
+        Me.UBICACION_NUEVO.tabstop = False
+        Me.UBICACION_GENERAL_NUEVO.tabstop = False
+        Me.UBICACION_ESPECIFICA_NUEVO.tabstop = False
+
+        'datos nuevos
+        Me.CARGO_NUEVO.MousePointer = fmMousePointerNoDrop
+        Me.CARGO_OCUPACIONAL_NUEVO.MousePointer = fmMousePointerNoDrop
+        Me.CLASIFICACION_CARGO_NUEVO.MousePointer = fmMousePointerNoDrop
+        Me.UBICACION_NUEVO.MousePointer = fmMousePointerNoDrop
+        Me.UBICACION_GENERAL_NUEVO.MousePointer = fmMousePointerNoDrop
+        Me.UBICACION_ESPECIFICA_NUEVO.MousePointer = fmMousePointerNoDrop
+End Sub
+
+
+Sub BloquearAbajo()
+    
+        'datos abajo
+        Me.OBSERVACIONES.Locked = True
+        Me.RESPONSABLE.Locked = True
+
+        'datos abajo
+        Me.OBSERVACIONES.tabstop = False
+        Me.RESPONSABLE.tabstop = False
+
+        'datos abajo
+        Me.OBSERVACIONES.MousePointer = fmMousePointerNoDrop
+        Me.RESPONSABLE.MousePointer = fmMousePointerNoDrop
+End Sub
+
+
+
+    Private Sub DesbloquearTodo()
+
+    '===========================
+    ' Desbloquear todos los campos
+    '===========================
+    DesbloquearGenerales
+    DesbloquearActuales
+    DesbloquearNuevos
+    DesbloquearAbajo
+        
+
+    End Sub
+
+
+    Sub DesbloquearGenerales()
+        
+    
+
+    'Datos generales
+    Me.EMP.Locked = False
+    Me.MOTIVO.Locked = False
+    Me.NOMBRES.Locked = False
+    Me.CEDULA.Locked = False
+    Me.EDAD.Locked = False
+    Me.FEMENINO.Locked = False
+    Me.MASCULINO.Locked = False
+    Me.URBANO.Locked = False
+    Me.RURAL.Locked = False
+    Me.MEMO.Locked = False
+    Me.FECHA.Locked = False
+
+    'Datos generales
+    Me.EMP.tabstop = True
+    Me.MOTIVO.tabstop = True
+    Me.NOMBRES.tabstop = True
+    Me.CEDULA.tabstop = True
+    Me.EDAD.tabstop = True
+    Me.FEMENINO.tabstop = True
+    Me.MASCULINO.tabstop = True
+    Me.URBANO.tabstop = True
+    Me.RURAL.tabstop = True
+    Me.MEMO.tabstop = True
+    Me.FECHA.tabstop = True
+
+    'Datos generales
+    Me.EMP.MousePointer = fmMousePointerDefault
+    Me.MOTIVO.MousePointer = fmMousePointerDefault
+    Me.NOMBRES.MousePointer = fmMousePointerDefault
+    Me.CEDULA.MousePointer = fmMousePointerDefault
+    Me.EDAD.MousePointer = fmMousePointerDefault
+    Me.FEMENINO.MousePointer = fmMousePointerDefault
+    Me.MASCULINO.MousePointer = fmMousePointerDefault
+    Me.URBANO.MousePointer = fmMousePointerDefault
+    Me.RURAL.MousePointer = fmMousePointerDefault
+    Me.MEMO.MousePointer = fmMousePointerDefault
+    Me.FECHA.MousePointer = fmMousePointerDefault
+
+    End Sub
+
+    Sub DesbloquearActuales()
+        
+   
+
+    'datos actuales
+    Me.CARGO.Locked = False
+    Me.CARGO_OCUPACIONAL.Locked = False
+    Me.CLASIFICACION_CARGO.Locked = False
+    Me.UBICACION.Locked = False
+    Me.UBICACION_GENERAL.Locked = False
+    Me.UBICACION_ESPECIFICA.Locked = False
+
+    'datos actuales
+    Me.CARGO.tabstop = True
+    Me.CARGO_OCUPACIONAL.tabstop = True
+    Me.CLASIFICACION_CARGO.tabstop = True
+    Me.UBICACION.tabstop = True
+    Me.UBICACION_GENERAL.tabstop = True
+    Me.UBICACION_ESPECIFICA.tabstop = True
+
+    'datos actuales
+    Me.CARGO.MousePointer = fmMousePointerDefault
+    Me.CARGO_OCUPACIONAL.MousePointer = fmMousePointerDefault
+    Me.CLASIFICACION_CARGO.MousePointer = fmMousePointerDefault
+    Me.UBICACION.MousePointer = fmMousePointerDefault
+    Me.UBICACION_GENERAL.MousePointer = fmMousePointerDefault
+    Me.UBICACION_ESPECIFICA.MousePointer = fmMousePointerDefault
+
+    End Sub
+
+    Sub DesbloquearNuevos()
+        
+
+
+    'datos nuevos
+    Me.CARGO_NUEVO.Locked = False
+    Me.CARGO_OCUPACIONAL_NUEVO.Locked = False
+    Me.CLASIFICACION_CARGO_NUEVO.Locked = False
+    Me.UBICACION_NUEVO.Locked = False
+    Me.UBICACION_GENERAL_NUEVO.Locked = False
+    Me.UBICACION_ESPECIFICA_NUEVO.Locked = False
+
+    'datos nuevos
+    Me.CARGO_NUEVO.tabstop = True
+    Me.CARGO_OCUPACIONAL_NUEVO.tabstop = True
+    Me.CLASIFICACION_CARGO_NUEVO.tabstop = True
+    Me.UBICACION_NUEVO.tabstop = True
+    Me.UBICACION_GENERAL_NUEVO.tabstop = True
+    Me.UBICACION_ESPECIFICA_NUEVO.tabstop = True
+
+    'datos nuevos
+    Me.CARGO_NUEVO.MousePointer = fmMousePointerDefault
+    Me.CARGO_OCUPACIONAL_NUEVO.MousePointer = fmMousePointerDefault
+    Me.CLASIFICACION_CARGO_NUEVO.MousePointer = fmMousePointerDefault
+    Me.UBICACION_NUEVO.MousePointer = fmMousePointerDefault
+    Me.UBICACION_GENERAL_NUEVO.MousePointer = fmMousePointerDefault
+    Me.UBICACION_ESPECIFICA_NUEVO.MousePointer = fmMousePointerDefault
+
+    End Sub
+
+    Sub DesbloquearAbajo()
+        
+
+
+    'datos abajo
+    Me.OBSERVACIONES.Locked = False
+    Me.RESPONSABLE.Locked = False
+   
+
+    'datos abajo
+    Me.OBSERVACIONES.tabstop = True
+    Me.RESPONSABLE.tabstop = True
+
+
+    'datos abajo
+    Me.OBSERVACIONES.MousePointer = fmMousePointerDefault
+    Me.RESPONSABLE.MousePointer = fmMousePointerDefault
+
+    End Sub
+
+
+
+Private Sub CARGO_Change()
+Dim Clas, Carg As Range
+                'Verificar si el campo de Cargo_Nuevo esta vacio
+                If Me.CARGO.Value = Empty Then
+                Me.CLASIFICACION_CARGO.Clear
+                
+                'Agregar los elementos de la tabla Clasificacion_Cargo de la Hoja24 a la variable Clas
+                Else
+                Set Clas = Hoja24.ListObjects("CLASIFICACION_CARGO").DataBodyRange
+                Me.CLASIFICACION_CARGO.Clear
+                
+                'Agregar Cada ClasificaciOn de Cargos al Listado
+                For Each Carg In Clas
+                Me.CLASIFICACION_CARGO.AddItem Carg.Value
+                Next Carg
+                End If
+End Sub
+
+
+Private Sub CARGO_NUEVO_Change()
+Dim Clas, Carg As Range
+                'Verificar si el campo de Cargo_Nuevo esta vacio
+                If Me.CARGO_NUEVO.Value = Empty Then
+                Me.CLASIFICACION_CARGO_NUEVO.Clear
+                
+                'Agregar los elementos de la tabla Clasificacion_Cargo de la Hoja24 a la variable Clas
+                Else
+                Set Clas = Hoja24.ListObjects("CLASIFICACION_CARGO").DataBodyRange
+                Me.CLASIFICACION_CARGO_NUEVO.Clear
+                
+                'Agregar Cada ClasificaciOn de Cargos al Listado
+                For Each Carg In Clas
+                Me.CLASIFICACION_CARGO_NUEVO.AddItem Carg.Value
+                Next Carg
+                End If
+End Sub
+
+Private Sub CLASIFICACION_CARGO_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+Dim tbl As ListObject
+    Dim c As Range
+    Dim Clas As String
+    
+    'Referencia a la tabla
+    Set tbl = Hoja24.ListObjects("CLASIFICACION_CARGO")
+    
+    Clas = Trim(Me.CLASIFICACION_CARGO.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If Clas = "" Then
+        Me.CLASIFICACION_CARGO.Value = ""
+        Cancel = False
+        Exit Sub
+    End If
+    
+    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=Clas, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+    
+    'Si NO existe
+    If c Is Nothing Then
+        
+        Me.CLASIFICACION_CARGO.Value = ""
+        MsgBox "La Clasificacion de Cargo no Existe", vbExclamation
+        Cancel = True
+        Exit Sub
+        
+    End If
+
+End Sub
+
+
+    Private Sub CLASIFICACION_CARGO_NUEVO_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim tbl As ListObject
+    Dim c As Range
+    Dim Clas As String
+    
+    'Referencia a la tabla
+    Set tbl = Hoja24.ListObjects("CLASIFICACION_CARGO")
+    
+    Clas = Trim(Me.CLASIFICACION_CARGO_NUEVO.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If Clas = "" Then
+        Me.CLASIFICACION_CARGO_NUEVO.Value = ""
+        Cancel = False
+        Exit Sub
+    End If
+    
+    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=Clas, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+    
+    'Si NO existe
+    If c Is Nothing Then
+        
+        Me.CLASIFICACION_CARGO_NUEVO.Value = ""
+        MsgBox "La Clasificacion de Cargo Nuevo no Existe", vbExclamation
+        Cancel = True
+        Exit Sub
+        
+    End If
+
+        If Me.Clasificacion_cargo_nuevo.value = "DIRECTIVO" Then
+            Hoja1.range("L12").Value = "DIRECTIVO"
+        Else
+            Hoja1.range("L12").Value = ""
+        End If
+
+End Sub
+
+
+
+Private Sub UBICACION_exit(ByVal Cancel As MSForms.ReturnBoolean)
+Dim Depe, Ubi As Range
+
+
+        'Si ingresa una ubicacion que no existe, limpiar el campo de Ubicacion
+            Dim tbl As ListObject
+            Dim c As Range
+            Dim Ubi As String
+            'Referencia a la tabla
+            Set tbl = Hoja24.ListObjects("UBICACION")
+            Ubi = Trim(Me.UBICACION.Value)
+            'Si esta vacio ? limpiar y salir
+            If Ubi = "" Then
+                Me.UBICACION_GENERAL.clear
+                Cancel = False
+                Exit Sub
+            End If
+            'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
+            Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                        What:=Ubi, _
+                        LookAt:=xlWhole, _
+                        MatchCase:=False)
+            'Si NO existe
+            If c Is Nothing Then
+                Me.UBICACION_GENERAL.Clear
+                MsgBox "La Ubicacion no Existe", vbExclamation
+                Me.UBICACION.Value = ""
+                Cancel = True
+                Exit Sub
+            End If
+
+        'Asignar a cada Dependencia su area ESPECIFICA
+        Set Depe = Hoja24.ListObjects(Me.UBICACION.Value).DataBodyRange
+        Me.UBICACION_GENERAL.Clear
+        
+                'Agregar Cada area ESPECIFICA al Listado
+                For Each Ubi In Depe
+                Me.UBICACION_GENERAL.AddItem Ubi.Value
+                Next Ubi
+    
+End Sub
+
+Private Sub UBICACION_NUEVO_exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim tbl As ListObject
+    Dim c As Range
+    Dim Ubi As String
+    
+    'Referencia a la tabla
+    Set tbl = Hoja24.ListObjects("UBICACION")
+    
+    Ubi = Trim(Me.UBICACION_NUEVO.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If Ubi = "" Then
+        Me.UBICACION_GENERAL_NUEVO.Clear
+        Cancel = False
+        Exit Sub
+    End If
+    
+    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=Ubi, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+    
+    'Si NO existe
+    If c Is Nothing Then
+        
+        Me.UBICACION_GENERAL_NUEVO.Clear
+        MsgBox "La Ubicacion no Existe", vbExclamation
+        Me.UBICACION_NUEVO.Value = ""
+        Cancel = True
+        Exit Sub
+        
+    End If
+    
+    'Asignar a cada Dependencia su area ESPECIFICA
+    Dim Dependencia, Dep As Range
+        Set Dependencia = Hoja24.ListObjects(Me.UBICACION_NUEVO.Value).DataBodyRange
+        Me.UBICACION_GENERAL_NUEVO.Clear
+        
+        'Agregar Cada area ESPECIFICA al Listado
+        For Each Dep In Dependencia
+            Me.UBICACION_GENERAL_NUEVO.AddItem Dep.Value
+        Next Dep
+    
+End Sub
+
+
+PRIVATE Sub UBICACION_GENERAL_EXIT(ByVal Cancel As MSForms.ReturnBoolean)
+
+Dim tbl As ListObject
+    Dim c As Range
+    Dim UbiGen As String
+    
+    'Referencia a la tabla
+    
+    Set tbl = Hoja24.ListObjects(Me.Ubicacion.Value)
+    
+    UbiGen = Trim(Me.UBICACION_GENERAL.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If UbiGen = "" Then
+        Cancel = False
+        Exit Sub
+    End If
+    
+    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=UbiGen, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+    
+    'Si NO existe
+    If c Is Nothing Then
+        
+        Me.UBICACION_GENERAL.Value = ""
+        MsgBox "La Ubicacion General no Existe", vbExclamation
+        Cancel = True
+        Exit Sub
+        
+    End If
+
+    Me.UBICACION_GENERAL.VALUE = Hoja1.Range("L9").Value
+
+End Sub
+
+PRIVATE Sub UBICACION_GENERAL_NUEVO_EXIT(ByVal Cancel As MSForms.ReturnBoolean)
+
+Dim tbl As ListObject
+    Dim c As Range
+    Dim UbiGen As String
+    
+    'Referencia a la tabla
+    Set tbl = Hoja24.ListObjects(Me.UBICACION_NUEVO.Value)
+    
+    UbiGen = Trim(Me.UBICACION_GENERAL_NUEVO.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If UbiGen = "" Then
+        Cancel = False
+        Exit Sub
+    End If
+    
+    'Buscar ubicaciOn en columna 1 (Col A = UbicaciOn)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=UbiGen, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+    
+    'Si NO existe
+    If c Is Nothing Then
+        
+        Me.UBICACION_GENERAL_NUEVO.Value = ""
+        MsgBox "La Ubicacion General no Existe", vbExclamation
+        Cancel = True
+        Exit Sub
+        
+    End If
+
+        Hoja1.Range("L16").Value = Me.UBICACION_GENERAL_NUEVO.Value
+    
+End Sub
+
+
+Private Sub URBANO_Click()
+
+    Me.URBANO.Value = True
+    Me.URBANO.ForeColor = &HFF0000
+    Me.RURAL.Value = False
+    Me.RURAL.ForeColor = &H0&
+    
+
+End Sub
+
+Private Sub RURAL_Click()
+        
+    Me.RURAL.Value = True
+    Me.RURAL.ForeColor = &HFF0000
+    Me.URBANO.Value = False
+    Me.URBANO.ForeColor = &H0&
+
+End Sub
+
+
+
+
+
 '=========================
-'SelecciOn de Genero
+'Seleccion de Genero
 '=========================
 Private Sub SeleccionarGenero(valor As String)
 
@@ -1345,7 +1720,33 @@ Private Sub SeleccionarGenero(valor As String)
 End Sub
 
 '=========================
-'SelecciOn de Domicilio
+'Seleccion de Dependientes
+'=========================
+Private Sub SeleccionarDependientes(valor As String)
+
+    'Reset
+    Me.SI.Value = False
+    Me.NO.Value = False
+    
+    Me.SI.ForeColor = &H0&
+    Me.NO.ForeColor = &H0&
+    
+    Select Case UCase(valor)
+        
+        Case "SI"
+            Me.SI.Value = True
+            Me.SI.ForeColor = &HFF0000
+            
+        Case "NO"
+            Me.NO.Value = True
+            Me.NO.ForeColor = &HFF0000
+            
+    End Select
+
+End Sub
+
+'=========================
+'Seleccion de Domicilio
 '=========================
 Private Sub SeleccionarDomicilio(valor As String)
 
@@ -1373,6 +1774,8 @@ End Sub
 '=========================
 'Limpiar campos
 '=========================
+
+
 
 Private Sub LimpiarCampos()
     
@@ -1416,81 +1819,56 @@ Private Sub LimpiarCampos()
 End Sub
 
 
-Private Sub EMP_Exit(ByVal Cancel As MSForms.ReturnBoolean)
 
 
-' ValidaciOn adicional al perder el foco
 
-    If Not EMP.Text Like "*[!0-9]*" Then
-        ' Texto valido (contiene solo numeros y /)
+Private Sub RESPONSABLE_Change()
+    If Me.RESPONSABLE.Value = "" Then
+        Me.REGISTRAR.Enabled = False
     Else
-        MsgBox "Solo se permiten numeros", vbExclamation
-        Cancel = True
-        EMP.SetFocus
+        Me.REGISTRAR.Visible = True
+        Me.REGISTRAR.Enabled = True
+        
     End If
 
 End Sub
 
-Private Sub MOTIVO_AfterUpdate()
+Private Sub RESPONSABLE_Exit(ByVal Cancel As MSForms.ReturnBoolean)
 
 Dim tbl As ListObject
     Dim c As Range
-    Dim OpMot As String
+    Dim Resp As String
     
     'Referencia a la tabla
-    Set tbl = Hoja24.ListObjects("MOTIVO")
+    Set tbl = Hoja24.ListObjects("RESPONSABLE")
     
-    OpMot = Trim(Me.MOTIVO.Value)
+    Resp = Trim(Me.RESPONSABLE.Value)
     
     'Si esta vacio ? limpiar y salir
-    If OpMot = "" Then
-        UserForm_Initialize
-        UserForm_Activate
-        Me.EMP.Value = ""
+    If Resp = "" Then
+        Me.REGISTRAR.Visible = False
+        Me.REGISTRAR.Enabled = False
+        Cancel = False
         Exit Sub
     End If
     
-    'Buscar empleado en columna 1 (Col A = No. EMP)
+    'Buscar responsable en columna 1 (Col A = UbicaciOn)
     Set c = tbl.ListColumns(1).DataBodyRange.Find( _
-                What:=OpMot, _
+                What:=Resp, _
                 LookAt:=xlWhole, _
                 MatchCase:=False)
     
     'Si NO existe
     If c Is Nothing Then
         
-        LimpiarCampos
-        MsgBox "Motivo Incorrecto", vbExclamation
-        Me.MOTIVO.Value = ""
-        Me.EMP.Value = ""
-        UserForm_Initialize
-        UserForm_Activate
+        MsgBox "Responsable no Existe", vbExclamation
+        Me.REGISTRAR.Enabled = False
+        Me.RESPONSABLE.Value = ""
+        Cancel = True
         Exit Sub
         
     End If
-    
-    Me.EMP_ETIQUETA.Visible = True
-    Me.EMP.Visible = True
-    Me.EMP.Value = ""
-    Me.EMP.SetFocus
-
-End Sub
-Private Sub COD_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-If (KeyAscii >= 97 And KeyAscii <= 122) Or (KeyAscii = 225) Or (KeyAscii = 233) Or (KeyAscii = 237) Or (KeyAscii = 241) Or (KeyAscii = 243) Or (KeyAscii = 250) Then
-    KeyAscii = VBA.Asc(VBA.UCase(VBA.Chr(KeyAscii)))
-End If
-End Sub
-
-Private Sub EMP_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-
-' Permite: numeros, /, backspace, delete, enter, tab
-
-    If Not (Chr(KeyAscii) Like "[0-9]" Or _
-            KeyAscii = 8 Or KeyAscii = 127 Or _
-            KeyAscii = 13 Or KeyAscii = 9) Then
-        KeyAscii = 0
-        Beep
-    End If
+        
 End Sub
 
 Private Sub NOMBRES_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
@@ -1653,26 +2031,6 @@ Private Function EsFechaValidaYFormatear(ctrl As MSForms.TextBox, _
     
 End Function
 
-
-Private Sub CARGO_NUEVO_Change()
-
-Dim Clas, Carg As Range
-                'Verificar si el campo de Cargo_Nuevo esta vacio
-                If Me.CARGO_NUEVO.Value = Empty Then
-                Me.CLASIFICACION_CARGO_NUEVO.Clear
-                
-                'Agregar los elementos de la tabla Clasificacion_Cargo de la Hoja24 a la variable Clas
-                Else
-                Set Clas = Hoja24.ListObjects("CLASIFICACION_CARGO").DataBodyRange
-                Me.CLASIFICACION_CARGO_NUEVO.Clear
-                
-                'Agregar Cada ClasificaciOn de Cargos al Listado
-                For Each Carg In Clas
-                Me.CLASIFICACION_CARGO_NUEVO.AddItem Carg.Value
-                Next Carg
-                End If
-                
-End Sub
 
 Private Sub REGISTRAR_Click()
 
@@ -2208,4 +2566,3 @@ Private Sub CARPETA_FOTO_Click()
     Shell "explorer.exe """ & rutaFotos & """", vbNormalFocus
     
 End Sub
-

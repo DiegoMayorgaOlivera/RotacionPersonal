@@ -14,15 +14,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
+
 '====================================================================================================================================
-' Formulario para gestionar las bajas de empleados. 
+' Formulario para gestionar las bajas de empleados.
 ' Permite registrar nuevas bajas y consultar las ya registradas.
 '====================================================================================================================================
 
 
-
 Dim Borrador As Boolean
 Option Explicit
+Private IgnorarValidacionEMP As Boolean
+Private EMP_Anterior As String
 ' ------------------------------------------------
 ' Constantes compartidas
 ' ------------------------------------------------
@@ -45,6 +47,14 @@ Public Function ObtenerRutaFotos() As String
 End Function
 
 
+Private Sub ATRAS_Click()
+
+Unload Me
+MENU_PRINCIPAL.Show
+Load MENU_PRINCIPAL
+
+End Sub
+
 Private Sub UserForm_Activate()
 
 Me.Top = 0
@@ -64,8 +74,30 @@ Private Sub UserForm_Initialize()
     OcultarTodo
 
 End Sub
-Private Sub EMP_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+Private Sub EMP_EXIT(ByVal Cancel As MSForms.ReturnBoolean)
+    ' evitar reentradas
+    Static InEMPExit As Boolean
+    If InEMPExit Then Exit Sub
+    InEMPExit = True
     
+    If EMP_Anterior = Me.EMP.Value Then
+        IgnorarValidacionEMP = True
+    Else
+        IgnorarValidacionEMP = False
+    End If
+
+    If Me.EMP.Value = "" Then
+        IgnorarValidacionEMP = False
+    End If
+
+    If IgnorarValidacionEMP Then
+        InEMPExit = False
+        Exit Sub
+    End If
+
+
+
     Dim tblBj, tblNom As ListObject
     Dim c, d As Range
     Dim empVal, nombreEmpleado As String
@@ -74,11 +106,12 @@ Private Sub EMP_Exit(ByVal Cancel As MSForms.ReturnBoolean)
     Set tblBj = Hoja3.ListObjects("BAJAS")
     
     empVal = Trim(Me.EMP.Value)
+    EMP_Anterior = empVal   ' bloquear mensajes adicionales
     
     If empVal = "" Then
         OcultarTodo
         LimpiarTodo
-        Cancel = True   '  impide que el foco salga del control
+        InEMPExit = False
         Exit Sub
     End If
     
@@ -89,7 +122,7 @@ Private Sub EMP_Exit(ByVal Cancel As MSForms.ReturnBoolean)
                 MatchCase:=False)
     
     'Si NO existe
-    If c Is Nothing Then
+    If c Is Nothing Then 'Valida si el empleado tiene una baja registrada, si no tiene baja registrada, validar si existe en nomina para cargar datos para nueva baja
             
                     'Referencia a la tabla
                 Set tblNom = Hoja25.ListObjects("NOMINA")
@@ -101,27 +134,34 @@ Private Sub EMP_Exit(ByVal Cancel As MSForms.ReturnBoolean)
                             MatchCase:=False)
                 
                 'Si NO existe
-                If d Is Nothing Then
+                If d Is Nothing Then 'Valida si el empleado existe en nomina, si no existe, limpiar y mostrar mensaje de error
                     LimpiarTodo
                     OcultarTodo
                     Me.EMP.Value = ""
                     MsgBox "Empleado no existe en la nomina", vbExclamation
                     Cancel = True   '  impide que el foco salga del control
+                    InEMPExit = False
                     Exit Sub
                     
                 End If
-        
-        Call NuevaBaja
-    Else
-        nombreEmpleado = c.Offset(0, 1).Value              'Col H
-        MsgBox "Ya Existe una Baja Registrada para el Empleado: " & vbNewLine & vbNewLine & empVal & " " & nombreEmpleado, vbExclamation
-        BajaRegistrada
+        NuevaBaja   'Si no tiene baja registrada pero si existe en nomina, cargar datos para nueva baja
+        Me.ESTADO_CIVIL.SetFocus
+    
+    Else 'Si existe una baja registrada para ese empleado, cargar datos de esa baja
+
+    nombreEmpleado = c.Offset(0, 1).Value              'Col H
+    MsgBox "Ya Existe una Baja Registrada para el Empleado: " & vbNewLine & vbNewLine & empVal & " " & nombreEmpleado, vbExclamation
+    BajaRegistrada
+           
         
     End If
     
-    
-    
+    Me.ATRAS.Top = 420
+    Me.ATRAS.Left = 850
+    EMP_Anterior = empVal
+    InEMPExit = False
 End Sub
+
 
 Private Sub BajaRegistrada()
 
@@ -213,11 +253,16 @@ Private Sub BajaRegistrada()
     Hoja24.ListObjects("ANTIGUEDAD_LABORAL").HeaderRowRange.Find("FECHA DE INGRESO").Offset(1, 1).Value = CDate(Me.FECHA_BAJA.Value)
     
     
-    Me.ANULAR.Visible = True
     Me.height = 540
+
+
+    BloquearBajaRegistrada
+
     Me.RESPONSABLE_ANULACION_ETIQUETA.Visible = True
     Me.RESPONSABLE_ANULACION.Visible = True
-    
+    Me.ANULAR.Visible = True
+    Me.RESPONSABLE_ANULACION.SetFocus
+    BloquearBajaRegistrada
     
 End Sub
 
@@ -264,7 +309,6 @@ Private Sub NuevaBaja()
 
     LimpiarTodo
     MostrarTodo
-    Me.DATOS.Value = 0
     Me.NOMBRES.Value = c.Offset(0, 1).Value              'Col B
     Me.CEDULA.Value = c.Offset(0, 12).Value              'Col M
     Me.EDAD.Value = c.Offset(0, 15).Value                'Col P
@@ -310,7 +354,8 @@ Private Sub NuevaBaja()
         Me.CLASIFICACION_CARGO.Locked = True
     End If
     
-    
+    Me.DATOS.Value = 0
+    BloquearNuevaBaja
     
 End Sub
 '=========================
@@ -837,35 +882,33 @@ Private Sub FECHA_BAJA_Exit(ByVal Cancel As MSForms.ReturnBoolean)
  Dim CeldaFechaBaja As String
  
     CeldaFechaBaja = Hoja24.ListObjects("ANTIGUEDAD_LABORAL").HeaderRowRange.Find("FECHA DE INGRESO").Address(False, False)
+    'Agregar las fechas para el calculo
+    Hoja24.Range(CeldaFechaBaja).Offset(1, 0).NumberFormat = "dd/mm/yyyy"
+    Hoja24.Range(CeldaFechaBaja).Offset(1, 0).Value = CDate(Me.FECHA_INGRESO.Value)
     
     
     
     If Not EsFechaValidaYFormatear(Me.FECHA_BAJA) Then
-        Me.ANTIGUEDAD_LABORAL.Value = Range(CeldaFechaBaja).Offset(1, 2).Value
+        Me.ANTIGUEDAD_LABORAL.Value = Hoja24.Range(CeldaFechaBaja).Offset(1, 2).Value
         Cancel = True   '  impide que el foco salga del control
         Exit Sub
     End If
- 
- 
-                
-        'Agregar las fechas para el calculo
-        Hoja24.Range(CeldaFechaBaja).Offset(1, 0).NumberFormat = "dd/mm/yyyy"
-        Hoja24.Range(CeldaFechaBaja).Offset(1, 0).Value = CDate(Me.FECHA_INGRESO.Value)
-                
-                
-        If Me.FECHA_BAJA.Value = "" Then
-        
-            Me.ANTIGUEDAD_LABORAL.Value = Range(CeldaFechaBaja).Offset(1, 2).Value
-            Exit Sub
-        Else
             
-            Range(CeldaFechaBaja).Offset(1, 1).NumberFormat = "dd/mm/yyyy"
-            Range(CeldaFechaBaja).Offset(1, 1).Value = CDate(Me.FECHA_BAJA.Value)
-            
-            'Sustituir Antiguedad Laboral
-            Me.ANTIGUEDAD_LABORAL.Value = Range(CeldaFechaBaja).Offset(1, 3).Value
+                
+    If Me.FECHA_BAJA.Value = "" Then
+    
+        Me.ANTIGUEDAD_LABORAL.Value = Hoja24.Range(CeldaFechaBaja).Offset(1, 2).Value
         
-        End If
+        Exit Sub
+    Else
+        
+        Hoja24.Range(CeldaFechaBaja).Offset(1, 1).NumberFormat = "dd/mm/yyyy"
+        Hoja24.Range(CeldaFechaBaja).Offset(1, 1).Value = CDate(Me.FECHA_BAJA.Value)
+        
+        'Sustituir Antiguedad Laboral
+        Me.ANTIGUEDAD_LABORAL.Value = Hoja24.Range(CeldaFechaBaja).Offset(1, 3).Value
+    
+    End If
     
 End Sub
 
@@ -909,13 +952,14 @@ End Function
 
 Private Sub MostrarTodo()
 
+IgnorarValidacionEMP = True
 
 '=================================
 'Valores de Nomina
 '=================================
 Me.EMP.Left = 12
 Me.EMP_ETIQUETA.Left = 12
-Me.T�TULO.Visible = False
+Me.TITULO.Visible = False
 Me.NOMBRES.Visible = True
 Me.NOMBRES_ETIQUETA.Visible = True
 Me.EDAD.Visible = True
@@ -942,7 +986,8 @@ Me.ACTUALIZAR_FOTO.Visible = True
 Me.AGREGAR_FOTO.Visible = True
 Me.ELIMINAR_FOTO.Visible = True
 Me.CARPETA_FOTO.Visible = True
-
+Me.DATOS.Visible = True
+Me.DATOS.Value = 1
 '=================================
 'Datos personales
 '=================================
@@ -1010,7 +1055,7 @@ Me.RESPONSABLE_ANULACION.Visible = False
 Me.height = 490
 Me.width = 925
 Me.ScrollBars = fmScrollBarsVertical
-
+IgnorarValidacionEMP = False
 End Sub
 
 
@@ -1022,7 +1067,10 @@ Private Sub OcultarTodo()
 '=================================
 Me.EMP.Left = 390
 Me.EMP_ETIQUETA.Left = 390
-Me.T�TULO.Visible = True
+Me.TITULO.Visible = True
+Me.ATRAS.Top = 20
+Me.ATRAS.Left = 460
+Me.ATRAS.Visible = True
 Me.NOMBRES.Visible = False
 Me.NOMBRES_ETIQUETA.Visible = False
 Me.EDAD.Visible = False
@@ -1049,7 +1097,8 @@ Me.ACTUALIZAR_FOTO.Visible = False
 Me.AGREGAR_FOTO.Visible = False
 Me.ELIMINAR_FOTO.Visible = False
 Me.CARPETA_FOTO.Visible = False
-
+Me.DATOS.Value = 0
+Me.DATOS.Visible = False
 '=================================
 'Datos personales
 '=================================
@@ -1101,13 +1150,14 @@ Me.ANULAR.Visible = False
 Me.RESPONSABLE_ANULACION_ETIQUETA.Visible = False
 Me.RESPONSABLE_ANULACION.Visible = False
 
+
 'Vaciar las celdas de calculo de Antiguedad Laboral
 
 Hoja24.ListObjects("ANTIGUEDAD_LABORAL").HeaderRowRange.Find("FECHA DE INGRESO").Offset(1, 0).Value = ""
 Hoja24.ListObjects("ANTIGUEDAD_LABORAL").HeaderRowRange.Find("FECHA DE INGRESO").Offset(1, 1).Value = ""
 
 Me.height = 100
-Me.width = 500
+Me.width = 510
 Me.ScrollBars = fmScrollBarsNone
 
 End Sub
@@ -1115,7 +1165,7 @@ End Sub
 
 Private Sub LimpiarTodo()
 
-
+DesbloquearBajaRegistrada
 '=================================
 'Valores de Nomina
 '=================================
@@ -1223,6 +1273,208 @@ Private Function EsValorValido(ByVal cbo As MSForms.ComboBox, _
     
 End Function
 
+Sub BloquearNuevaBaja()
+    
+    'Bloquea los campos para nueva baja, excepto el campo EMP que es el que se utiliza para buscar al trabajador
+    Me.NOMBRES.tabstop = False
+    Me.EDAD.tabstop = False
+    Me.FEMENINO.tabstop = False
+    Me.MASCULINO.tabstop = False
+    Me.CEDULA.tabstop = False
+    Me.CARGO.tabstop = False
+    If CLASIFICACION_CARGO.Value = "" Then
+        Me.CLASIFICACION_CARGO.tabstop = True
+    Else
+        Me.CLASIFICACION_CARGO.tabstop = False
+    End If
+    Me.UBICACION.tabstop = False
+    Me.UBICACION_GENERAL.tabstop = False
+    Me.UBICACION_ESPECIFICA.tabstop = False
+    Me.FECHA_INGRESO.tabstop = False
+    Me.ANTIGUEDAD_LABORAL.tabstop = False
+    
+    Me.NOMBRES.Locked = True
+    Me.EDAD.Locked = True
+    Me.FEMENINO.Locked = True
+    Me.MASCULINO.Locked = True
+    Me.CEDULA.Locked = True
+    Me.CARGO.Locked = True
+    If CLASIFICACION_CARGO.Value = "" Then
+        Me.CLASIFICACION_CARGO.Locked = False
+    Else
+        Me.CLASIFICACION_CARGO.Locked = True
+    End If
+    Me.UBICACION.Locked = True
+    Me.UBICACION_GENERAL.Locked = True
+    Me.UBICACION_ESPECIFICA.Locked = True
+    Me.FECHA_INGRESO.Locked = True
+    Me.ANTIGUEDAD_LABORAL.Locked = True
+
+    Me.NOMBRES.MousePointer = fmMousePointerNoDrop
+    Me.EDAD.MousePointer = fmMousePointerNoDrop
+    Me.FEMENINO.MousePointer = fmMousePointerNoDrop
+    Me.MASCULINO.MousePointer = fmMousePointerNoDrop
+    Me.CEDULA.MousePointer = fmMousePointerNoDrop
+    Me.CARGO.MousePointer = fmMousePointerNoDrop
+    If CLASIFICACION_CARGO = "" Then
+        Me.CLASIFICACION_CARGO.MousePointer = fmMousePointerDefault
+    Else
+        Me.CLASIFICACION_CARGO.MousePointer = fmMousePointerNoDrop
+    End If
+    Me.UBICACION.MousePointer = fmMousePointerNoDrop
+    Me.UBICACION_GENERAL.MousePointer = fmMousePointerNoDrop
+    Me.UBICACION_ESPECIFICA.MousePointer = fmMousePointerNoDrop
+    Me.FECHA_INGRESO.MousePointer = fmMousePointerNoDrop
+    Me.ANTIGUEDAD_LABORAL.MousePointer = fmMousePointerNoDrop
+    
+End Sub
+
+Sub BloquearBajaRegistrada()
+    
+    'Bloquear los campos para una baja ya registrada, para evitar modificaciones, excepto el campo EMP que es el que se utiliza para buscar al trabajador y el campo de Anular en caso de que se quiera anular la baja registrada
+
+    BloquearNuevaBaja
+    Me.ESTADO_CIVIL.tabstop = False
+    Me.SI.tabstop = False
+    Me.NO.tabstop = False
+    Me.URBANO.tabstop = False
+    Me.RURAL.tabstop = False
+    Me.NIVEL_ACADEMICO.tabstop = False
+    Me.ESTUDIO.tabstop = False
+    Me.SALARIO_BASE.tabstop = False
+    Me.ANTIGUEDAD_SALARIAL.tabstop = False
+    Me.FECHA_BAJA.tabstop = False
+    Me.TIPO_BAJA.tabstop = False
+    Me.MOTIVO_BAJA.tabstop = False
+    Me.RESPONSABLE.tabstop = False
+    Me.FECHA_REGISTRO.tabstop = False
+
+    Me.ESTADO_CIVIL.Locked = True
+    Me.SI.Locked = True
+    Me.NO.Locked = True
+    Me.URBANO.Locked = True
+    Me.RURAL.Locked = True
+    Me.NIVEL_ACADEMICO.Locked = True
+    Me.ESTUDIO.Locked = True
+    Me.SALARIO_BASE.Locked = True
+    Me.ANTIGUEDAD_SALARIAL.Locked = True
+    Me.FECHA_BAJA.Locked = True
+    Me.TIPO_BAJA.Locked = True
+    Me.MOTIVO_BAJA.Locked = True
+    Me.RESPONSABLE.Locked = True
+    Me.FECHA_REGISTRO.Locked = True
+    
+    Me.ESTADO_CIVIL.MousePointer = fmMousePointerNoDrop
+    Me.SI.MousePointer = fmMousePointerNoDrop
+    Me.NO.MousePointer = fmMousePointerNoDrop
+    Me.URBANO.MousePointer = fmMousePointerNoDrop
+    Me.RURAL.MousePointer = fmMousePointerNoDrop
+    Me.NIVEL_ACADEMICO.MousePointer = fmMousePointerNoDrop
+    Me.ESTUDIO.MousePointer = fmMousePointerNoDrop
+    Me.SALARIO_BASE.MousePointer = fmMousePointerNoDrop
+    Me.ANTIGUEDAD_SALARIAL.MousePointer = fmMousePointerNoDrop
+    Me.FECHA_BAJA.MousePointer = fmMousePointerNoDrop
+    Me.TIPO_BAJA.MousePointer = fmMousePointerNoDrop
+    Me.MOTIVO_BAJA.MousePointer = fmMousePointerNoDrop
+    Me.RESPONSABLE.MousePointer = fmMousePointerNoDrop
+    Me.FECHA_REGISTRO.MousePointer = fmMousePointerNoDrop
+
+
+End Sub
+
+
+Sub DesbloquearNuebaBaja()
+    
+    'Desbloquea los campos para nueva baja, excepto el campo EMP que es el que se utiliza para buscar al trabajador
+    Me.NOMBRES.tabstop = True
+    Me.EDAD.tabstop = True
+    Me.FEMENINO.tabstop = True
+    Me.MASCULINO.tabstop = True
+    Me.CEDULA.tabstop = True
+    Me.CARGO.tabstop = True
+    Me.CLASIFICACION_CARGO.tabstop = True
+    Me.UBICACION.tabstop = True
+    Me.UBICACION_GENERAL.tabstop = True
+    Me.UBICACION_ESPECIFICA.tabstop = True
+    Me.FECHA_INGRESO.tabstop = True
+    Me.ANTIGUEDAD_LABORAL.tabstop = True
+    
+    Me.NOMBRES.Locked = False
+    Me.EDAD.Locked = False
+    Me.FEMENINO.Locked = False
+    Me.MASCULINO.Locked = False
+    Me.CEDULA.Locked = False
+    Me.CARGO.Locked = False
+    Me.CLASIFICACION_CARGO.Locked = False
+    Me.UBICACION.Locked = False
+    Me.UBICACION_GENERAL.Locked = False
+    Me.UBICACION_ESPECIFICA.Locked = False
+    Me.FECHA_INGRESO.Locked = False
+    Me.ANTIGUEDAD_LABORAL.Locked = False
+
+    Me.NOMBRES.MousePointer = fmMousePointerDefault
+    Me.EDAD.MousePointer = fmMousePointerDefault
+    Me.FEMENINO.MousePointer = fmMousePointerDefault
+    Me.MASCULINO.MousePointer = fmMousePointerDefault
+    Me.CEDULA.MousePointer = fmMousePointerDefault
+    Me.CARGO.MousePointer = fmMousePointerDefault
+    Me.CLASIFICACION_CARGO.MousePointer = fmMousePointerDefault
+    Me.UBICACION.MousePointer = fmMousePointerDefault
+    Me.UBICACION_GENERAL.MousePointer = fmMousePointerDefault
+    Me.UBICACION_ESPECIFICA.MousePointer = fmMousePointerDefault
+    Me.FECHA_INGRESO.MousePointer = fmMousePointerDefault
+    Me.ANTIGUEDAD_LABORAL.MousePointer = fmMousePointerDefault
+
+End Sub
+
+
+Sub DesbloquearBajaRegistrada()
+
+    'Desbloquear los campos para una baja ya registrada, para permitir modificaciones, excepto el campo EMP que es el que se utiliza para buscar al trabajador y el campo de Anular en caso de que se quiera anular la baja registrada
+
+    DesbloquearNuebaBaja
+    Me.ESTADO_CIVIL.tabstop = True
+    Me.SI.tabstop = True
+    Me.NO.tabstop = True
+    Me.URBANO.tabstop = True
+    Me.RURAL.tabstop = True
+    Me.NIVEL_ACADEMICO.tabstop = True
+    Me.ESTUDIO.tabstop = True
+    Me.SALARIO_BASE.tabstop = True
+    Me.ANTIGUEDAD_SALARIAL.tabstop = True
+    Me.FECHA_BAJA.tabstop = True
+    Me.TIPO_BAJA.tabstop = True
+    Me.MOTIVO_BAJA.tabstop = True
+    Me.RESPONSABLE.tabstop = True
+    Me.FECHA_REGISTRO.tabstop = True
+
+    Me.ESTADO_CIVIL.Locked = False
+    Me.SI.Locked = False
+    Me.NO.Locked = False
+    Me.URBANO.Locked = False
+    Me.RURAL.Locked = False
+    Me.NIVEL_ACADEMICO.Locked = False
+    Me.ESTUDIO.Locked = False
+    Me.SALARIO_BASE.Locked = False
+    Me.ANTIGUEDAD_SALARIAL.Locked = False
+    Me.FECHA_BAJA.Locked = False
+    Me.TIPO_BAJA.Locked = False
+    Me.MOTIVO_BAJA.Locked = False
+    Me.RESPONSABLE.Locked = False
+    Me.FECHA_REGISTRO.Locked = False
+    
+    Me.ESTADO_CIVIL.MousePointer = fmMousePointerDefault
+    Me.SI.MousePointer = fmMousePointerDefault
+    Me.NO.MousePointer = fmMousePointerDefault
+    Me.URBANO.MousePointer = fmMousePointerDefault
+    Me.RURAL.MousePointer = fmMousePointerDefault
+    Me.NIVEL_ACADEMICO.MousePointer = fmMousePointerDefault
+    Me.ESTUDIO.MousePointer = fmMousePointerDefault
+    Me.SALARIO_BASE.MousePointer = fmMousePointerDefault
+    
+End Sub
+
+
 Private Sub CLASIFICACION_CARGO_BeforeUpdate(ByVal Cancel As MSForms.ReturnBoolean)
 
     If Not EsValorValido(Me.CLASIFICACION_CARGO, "AUX", "CLASIFICACION_CARGO") Then
@@ -1290,7 +1542,6 @@ Dim tbl As ListObject
     If Resp = "" Then
         Me.REGISTRAR.Visible = False
         Me.REGISTRAR.Enabled = False
-        Cancel = True
         Exit Sub
     End If
     
@@ -1309,7 +1560,48 @@ Dim tbl As ListObject
         Me.REGISTRAR.Visible = False
         Me.REGISTRAR.Enabled = False
         Me.RESPONSABLE.Value = ""
-        Me.RESPONSABLE.SetFocus
+        Cancel = True
+        Exit Sub
+        
+    End If
+        
+End Sub
+
+
+Private Sub RESPONSABLE_ANULACION_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+Dim tbl As ListObject
+    Dim c As Range
+    Dim Resp As String
+    
+    'Referencia a la tabla
+    Set tbl = Hoja24.ListObjects("RESPONSABLE")
+    
+    Resp = Trim(Me.RESPONSABLE.Value)
+    
+    'Si esta vacio ? limpiar y salir
+    If Resp = "" Then
+        Me.REGISTRAR.Visible = False
+        Me.REGISTRAR.Enabled = False
+        Exit Sub
+    End If
+    
+    'Buscar responsable en columna 1 (Col A = UbicaciOn)
+    Set c = tbl.ListColumns(1).DataBodyRange.Find( _
+                What:=Resp, _
+                LookAt:=xlWhole, _
+                MatchCase:=False)
+        Me.REGISTRAR.Visible = True
+        Me.REGISTRAR.Enabled = True
+        
+    'Si NO existe
+    If c Is Nothing Then
+        
+        MsgBox "Responsable no Existe", vbExclamation
+        Me.REGISTRAR.Visible = False
+        Me.REGISTRAR.Enabled = False
+        Me.RESPONSABLE.Value = ""
+        Cancel = True
         Exit Sub
         
     End If
@@ -1757,15 +2049,14 @@ CodEmpleado = Me.EMP.Value
     Next f
     
 
-Call LimpiarTodo
+LimpiarTodo
 ActiveWorkbook.Save
+
+Load BAJAS
 
 MsgBox "La BAJA del Empleado " & Me.NOMBRES.Value & " fue guardado con exito." & vbCrLf & _
        "Y Datos del Trabajador fueron editados en NOMINA", _
-       vbInformation, "exito"
-
-Call UserForm_Initialize
-Call UserForm_Activate
+        vbInformation, "exito"
 
 End Sub
 
@@ -1777,10 +2068,11 @@ Dim respuesta As VbMsgBoxResult
     nombreTrabajador = Me.NOMBRES.Value
 
     If Me.RESPONSABLE_ANULACION.Value = "" Then
-    MsgBox "Selecciona un Responsable para la Anulacion", , "Datos Incompletos"
-    Me.RESPONSABLE_ANULACION.SetFocus
-    Exit Sub
+        MsgBox "Selecciona un Responsable para la Anulacion", vbExclamation, "Datos Incompletos"
+        Me.RESPONSABLE_ANULACION.SetFocus
+        Exit Sub
     End If
+    
     
     ' Muestra el mensaje de alerta con botones Si y No
     respuesta = MsgBox("Esta por Anular el registro de baja de: " & vbCrLf & vbCrLf & nombreTrabajador & vbCrLf & vbCrLf & "¿Desea eliminar este registro?", vbYesNo + vbQuestion + vbDefaultButton2, "Confirmar Accion")
@@ -1856,10 +2148,12 @@ Dim respuesta As VbMsgBoxResult
         c.Offset(0, 0).Value = "BAJA ANULADA"
         
         'MENSAJE DE BAJA ANULADA
-        MsgBox "Se ha Anulado Correctamente la Baja de:" & vbCrLf & vbCrLf & nombreTrabajador, vbInformation, "Baja Anulada"
         Me.EMP.Value = ""
-        Call EMP_AfterUpdate
+        ActiveWorkbook.Save
+        Load BAJAS
+        MsgBox "Se ha Anulado Correctamente la Baja de:" & vbCrLf & vbCrLf & nombreTrabajador, vbInformation, "Baja Anulada"
         
+
     Else
         ' AcciOn si el usuario presiona No
         MsgBox "Operacion Cancelada.", vbInformation, "Anulacion Cancelada"

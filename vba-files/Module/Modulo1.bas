@@ -3,8 +3,8 @@ Option Explicit
 
 Sub MemoLetraNumero()
 
-    Hoja1.Range("E12").Value = LetrasMoneda(Hoja1.Range("E11").Value)
-    LetrasMemo Hoja1.Range("C10")
+    Hoja1.Range("E13").Value = LetrasMoneda(Hoja1.Range("E12").Value)
+    Call LetrasMemo(Hoja1.Range("C10"), Hoja1.Range("E15"))
     
 End Sub
 
@@ -170,28 +170,24 @@ End Function
 
 '=============================================================================================
 ' Funcion para Extraer las Letras del Nombre, para el Memorandum
+' Uso: Call LetrasMemo(inputRange, outputRange)
 '=============================================================================================
 
-Private Sub LetrasMemo(ByVal Target As Range)
-    ' Solo reaccionar si se modifico la celda C10
-    If Not Intersect(Target, Hoja1.Range("C10")) Is Nothing Then
-        Application.EnableEvents = False
-        
-        Dim nombre As String
-        Dim iniciales As String
-        
-        nombre = Trim(Hoja1.Range("C10").Value)
-        
-        ' Caso vacio o cadena vacia
-        If nombre = "" Then
-            Hoja1.Range("E14").Value = "Sin Remitente"
-        Else
-            iniciales = ObtenerInicialesNombre(nombre)
-            Hoja1.Range("E14").Value = iniciales
-        End If
-        
-        Application.EnableEvents = True
+Public Sub LetrasMemo(inputRange As Range, outputRange As Range)
+    
+    Dim nombre As String
+    Dim iniciales As String
+    
+    nombre = Trim(inputRange.Value)
+    
+    ' Caso vacio o cadena vacia
+    If nombre = "" Then
+        outputRange.Value = "Sin Remitente"
+    Else
+        iniciales = ObtenerInicialesNombre(nombre)
+        outputRange.Value = iniciales
     End If
+    
 End Sub
 
 

@@ -28,3 +28,13 @@ BAJAS.Show
 
 End Sub
 
+Sub MENU_FORMULARIOS()
+Attribute MENU_FORMULARIOS.VB_ProcData.VB_Invoke_Func = "f\n14"
+
+' MENU_FORMULARIOS Macro
+' Acceso directo: CTRL+f
+
+    Load MENU_PRINCIPAL
+    MENU_PRINCIPAL.Show
+    
+End Sub

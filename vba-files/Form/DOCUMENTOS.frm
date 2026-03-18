@@ -13,6 +13,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
+
 '====================================================================================================================================
 ' Formulario para gestionar las bajas de empleados.
 ' Permite registrar nuevas bajas y consultar las ya registradas.
@@ -28,6 +29,14 @@ Public Function ObtenerRutaFotos() As String
     ObtenerRutaFotos = ThisWorkbook.Path & "\FOTOS\"
 End Function
 
+
+Private Sub ATRAS_Click()
+
+Unload Me
+MENU_PRINCIPAL.Show
+Load MENU_PRINCIPAL
+
+End Sub
 
 Private Sub UserForm_Activate()
   Me.EMP.Value = ""
@@ -200,11 +209,13 @@ Private Sub Reset()
     Me.ELIMINAR_FOTO.Visible = False
     Me.CARPETA_FOTO.Visible = False
     Me.SIN_FOTO.Visible = False
-    
+    Me.ATRAS.Visible = True
+    Me.ATRAS.Top = 20
+    Me.ATRAS.Left = 460
     
     Me.ScrollTop = 0
     Me.height = 100
-    Me.width = 500
+    Me.width = 510
     Me.ScrollBars = fmScrollBarsNone
     Me.Top = 0
     Me.Left = 0
@@ -214,16 +225,10 @@ Private Sub Reset()
     
 End Sub
 
-Private Sub EMP_Change()
-    If Me.EMP.Value = Empty Then
-    Call Reset
-    End If
-End Sub
-
 ' ===============================
 ' BUSCAR EMP
 ' ===============================
-Private Sub EMP_AfterUpdate()
+Private Sub EMP_EXIT(ByVal Cancel As MSForms.ReturnBoolean)
 
     Dim ws As Worksheet
     Dim tbl As ListObject
@@ -236,6 +241,11 @@ Private Sub EMP_AfterUpdate()
 
     empVal = EMP.Value
     
+    If empVal = "" Then
+        Call Reset
+        Exit Sub
+    End If
+
     Application.ScreenUpdating = False
     Call Reset
     Call Mostrar
@@ -315,14 +325,17 @@ Private Sub EMP_AfterUpdate()
                 Next f
                 
                 If Not encontrado Then
-    
-                    MsgBox "Empleado no encontrado", vbExclamation
+
                     Call Reset
                     Me.EMP.Value = ""
-                    Me.EMP.SetFocus
+                    MsgBox "Empleado no encontrado", vbExclamation
+                    Cancel = True
+                    Exit Sub
                 End If
         ActualizarBarraProgreso
         
+        Me.ATRAS.Top = 480
+        Me.ATRAS.Left = 800
         
         
     End Sub
