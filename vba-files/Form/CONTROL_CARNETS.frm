@@ -32,6 +32,8 @@ Public Function ObtenerRutaFotos() As String
 End Function
 
 
+
+
 Private Sub UBICACION_ESPECIFICA_NUEVO_ETIQUETA_Click()
 
 End Sub

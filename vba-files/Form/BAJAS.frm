@@ -458,7 +458,7 @@ Private Sub SeleccionarDependientes(valor As String)
 
 End Sub
 
-Private Sub SI_Click()
+Private Sub Si_Click()
 
     If Me.SI.Value = True Then
         Me.SI.ForeColor = &HFF0000
